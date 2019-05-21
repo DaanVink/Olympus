@@ -1,3 +1,5 @@
+#TODO: Merge setupUI function into the __init__ function of the class itself, and calling the constructor of super()
+
 from PyQt5 import QtGui, QtWidgets, QtCore, uic
 import sys
 import settingsHandler
@@ -24,7 +26,7 @@ class confirmExit(QtWidgets.QDialog):
 
 class NewLinkWidget(QtWidgets.QDialog):
     def setupUI(self, settingsObj):
-        uic.loadUi("dialog.ui", self)
+        uic.loadUi("addContent.ui", self)
         dialog.show()
 
         self.buttonCancel.clicked.connect(self.cancel)
@@ -44,12 +46,13 @@ class NewLinkWidget(QtWidgets.QDialog):
 
         self.typeBox.activated.connect(self.typeBoxFunc)
         self.categoryBox.activated.connect(self.catBoxFunc)
+        
+        self.exec()
 
     def cancel(self):
         if self.linkURL.text() != "" or self.linkNotes.toPlainText() != "":
             prompt = confirmExit()
             prompt.setupUI()
-            print(prompt.response)
             if prompt.response:
                 self.close()
             else:
@@ -66,10 +69,9 @@ class NewLinkWidget(QtWidgets.QDialog):
     def apply(self):
         self.link = self.linkURL.text()
         self.notes = self.linkNotes.toPlainText()
-        obj = [self.link, self.notes, self.cat, self.type]
+        obj = {"title": self.link, "notes": self.notes, "category": self.cat, "type": self.type}
         print(obj)
         self.close()
     
 dialog = NewLinkWidget()
 dialog.setupUI(settingsHolder)
-app.exec()
