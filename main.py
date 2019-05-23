@@ -1,26 +1,21 @@
 #TODO: Set up a consistent naming scheme for files, classes and functions
+#TODO: find a way to minimize new object creation when calling updateTree()
+#TODO: clean up functions and group related code using whitespace
+#TODO: comments
+#TODO: add detail view for categories with "Rename category", "Delete", etc
 
 from PyQt5 import QtGui, QtWidgets, QtCore, uic
-import sys
-import json
-import sqlite3
-
-db = sqlite3.connect("data/mainStore.sqlite")
+import sys, json, sqlite3
 
 from GUI import newContent, detailContent
 import settingsHandler
+
+db = sqlite3.connect("data/mainStore.sqlite")
 
 settingsHolder = settingsHandler.Settings()
 
 app = QtWidgets.QApplication(sys.argv)
 
-class Item():
-    def __init__(self, title, content, category, type):
-        self.title = title
-        self.content = content
-        self.category = category
-        self.type = type
-        
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, db, parent=None):
         super().__init__(parent)
@@ -51,6 +46,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.filter = {"category": "", "type": "", "search": ""}
 
+        self.treeView.setColumnWidth(0, 150)
+        self.treeView.setAlternatingRowColors(False)
+        self.treeView.expandAll()
+
         self.updateTree()
 
         self.treeView.doubleClicked.connect(self.onDoubleClick)
@@ -59,27 +58,28 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self.filter["category"] is not "":
             filteredCategories = [ self.filter["category"] ]
-            print("test")
         else:
             filteredCategories = settingsHolder.settings["categories"]
         
         filterType = self.filter["type"] if self.filter["type"] is not "" else ""
 
+        addition = ""
+        if filterType is not "":
+            addition += f" AND type = '{filterType}'"
+        if self.filter["search"] is not "":
+            search = self.filter["search"]
+            addition += f" AND (name LIKE '%{ search }%' or content LIKE '%{ search }%')"
+
         self.data = {}
         for category in filteredCategories:
-            query = f"SELECT name, content, type, id FROM data WHERE category = '{category}'"
-            if filterType is not "":
-                query += f" AND type = '{filterType}'"
-            if self.filter["search"] is not "":
-                search = self.filter["search"]
-                query += f" AND (name LIKE '%{ search }%' or content LIKE '%{ search }%')"
-            print(query)
+            query = f"SELECT name, content, type, id FROM data WHERE category = '{category}'" + addition
             self.cursor.execute(query)
             self.data[str(category)] = self.cursor.fetchall()
 
         self.model = QtGui.QStandardItemModel()
         self.model.setColumnCount(4)
         self.model.setHorizontalHeaderLabels(["Title", "Notes", "Type", "ID"])
+
         self.rootNode = self.model.invisibleRootItem()
 
         self.branches = []
@@ -95,12 +95,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 ])
         
         for branch in self.branches:
-            self.rootNode.appendRow( [branch, None] )
+            self.rootNode.appendRow( [branch] )
         
         self.treeView.setModel(self.model)
-        self.treeView.setColumnWidth(0, 150)
-
-        self.treeView.setAlternatingRowColors(False)
         self.treeView.expandAll()
     
     def addContent(self):
