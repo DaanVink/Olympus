@@ -15,8 +15,6 @@ class LinkDialog(QtWidgets.QDialog):
         uic.loadUi("GUI/content.ui", self)
         self.show()
 
-        self.typeBox.activated.connect(self.typeBoxFunc)
-        self.categoryBox.activated.connect(self.catBoxFunc)
         self.buttonEdit.clicked.connect(self.edit)
         self.buttonDelete.clicked.connect(self.delete)
         self.buttonClose.clicked.connect(self.close)

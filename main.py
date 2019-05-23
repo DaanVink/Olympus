@@ -37,14 +37,43 @@ class MainWindow(QtWidgets.QMainWindow):
             self.cursor.execute(query)
             self.data[str(category)] = self.cursor.fetchall()
 
-        self.updateTree(None)
+        self.categoryFilter.addItem("")
+        for item in settingsHolder.settings["categories"]:
+            self.categoryFilter.addItem(item)
+        self.categoryFilter.activated.connect(self.catFilterFunc)
+
+        self.typeFilter.addItem("")
+        for item in settingsHolder.settings["types"]:
+            self.typeFilter.addItem(item)
+        self.typeFilter.activated.connect(self.typeFilterFunc)
+
+        self.searchBox.textChanged.connect(self.onSearchChange)
+
+        self.filter = {"category": "", "type": "", "search": ""}
+
+        self.updateTree()
 
         self.treeView.doubleClicked.connect(self.onDoubleClick)
 
-    def updateTree(self, filter):
+    def updateTree(self):
 
-        for category in settingsHolder.settings["categories"]:
-            query = f"SELECT name, content, type, id FROM data WHERE category == '{category}'"
+        if self.filter["category"] is not "":
+            filteredCategories = [ self.filter["category"] ]
+            print("test")
+        else:
+            filteredCategories = settingsHolder.settings["categories"]
+        
+        filterType = self.filter["type"] if self.filter["type"] is not "" else ""
+
+        self.data = {}
+        for category in filteredCategories:
+            query = f"SELECT name, content, type, id FROM data WHERE category = '{category}'"
+            if filterType is not "":
+                query += f" AND type = '{filterType}'"
+            if self.filter["search"] is not "":
+                search = self.filter["search"]
+                query += f" AND (name LIKE '%{ search }%' or content LIKE '%{ search }%')"
+            print(query)
             self.cursor.execute(query)
             self.data[str(category)] = self.cursor.fetchall()
 
@@ -54,8 +83,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.rootNode = self.model.invisibleRootItem()
 
         self.branches = []
-        for x in range(0, len(settingsHolder.settings["categories"])):
-            category = settingsHolder.settings["categories"][x]
+        for x in range(0, len(filteredCategories)):
+            category = filteredCategories[x]
             self.branches.append(QtGui.QStandardItem(str(category)))
             for node in range(0, len(self.data[str(category)])):
                 currentData = self.data[str(category)][node]
@@ -85,16 +114,31 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             self.cursor.execute("INSERT INTO data(name, content, category, type) VALUES(?,?,?,?)", [d["title"], d["notes"], d["category"], d["type"]])
             self.db.commit()
-            self.updateTree(None)
+            self.updateTree()
         except sqlite3.IntegrityError:
             print("Not a unique ID")
     
     def onDoubleClick(self, index):
         id = self.treeView.selectedIndexes()[3].data()
+        if id is None:
+            pass
+        else:
+            self.detail = detailContent.LinkDialog(settingsHolder, id, self.db, self.cursor)
+            self.detail.exec()
+        self.updateTree()
+    
+    def catFilterFunc(self, index):
+        self.filter["category"] = self.categoryFilter.itemText(index)
+        self.updateTree()
 
-        self.new = detailContent.LinkDialog(settingsHolder, id, self.db, self.cursor)
-        self.new.exec()
-        self.updateTree(None)
+    def typeFilterFunc(self, index):
+        self.filter["type"] = self.typeFilter.itemText(index)
+        self.updateTree()
+    
+    def onSearchChange(self):
+        search = self.searchBox.text()
+        self.filter["search"] = search
+        self.updateTree()
 
 main = MainWindow(db)
 main.show()
