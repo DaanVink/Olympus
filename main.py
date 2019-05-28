@@ -7,24 +7,23 @@
 from PyQt5 import QtGui, QtWidgets, QtCore, uic
 import sys, json, sqlite3
 
-from GUI import newContent, detailContent
+from GUI import contentViews, typeEditor
 import settingsHandler
 
 db = sqlite3.connect("data/mainStore.sqlite")
 
-settingsHolder = settingsHandler.Settings()
+settingsHolder = settingsHandler.Settings(db)
+settingsHolder.load()
 
 app = QtWidgets.QApplication(sys.argv)
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, db, parent=None):
         super().__init__(parent)
-        self.db = db
-        self.cursor = self.db.cursor()
-
         uic.loadUi("GUI/main.ui", self)
 
-        self.buttonNew.clicked.connect(self.addContent)
+        self.db = db
+        self.cursor = self.db.cursor()
 
         self.data = {}
         for category in settingsHolder.settings["categories"]:
@@ -43,27 +42,39 @@ class MainWindow(QtWidgets.QMainWindow):
         self.typeFilter.activated.connect(self.typeFilterFunc)
 
         self.searchBox.textChanged.connect(self.onSearchChange)
-
         self.filter = {"category": "", "type": "", "search": ""}
 
         self.treeView.setColumnWidth(0, 150)
         self.treeView.setAlternatingRowColors(False)
         self.treeView.expandAll()
-
+        self.treeView.doubleClicked.connect(self.onDoubleClick)
         self.updateTree()
 
-        self.treeView.doubleClicked.connect(self.onDoubleClick)
+        self.menu = self.menuBar()
+        self.addNew = QtWidgets.QAction("New", self)
+        self.addNew.triggered.connect(self.addContent)
+        self.menu.addAction(self.addNew)
+
+        self.editTypes = QtWidgets.QAction("Types", self)
+        self.editTypes.triggered.connect(self.editTypesFunc)
+        self.menu.addAction(self.editTypes)
+
+        self.tmp = QtWidgets.QAction("Debug", self)
+        self.tmp.triggered.connect(self.tmpFunc)
+        self.menu.addAction(self.tmp)
+
+        self.setWindowTitle("Project Olympus")
+        self.show()
 
     def updateTree(self):
 
+        addition = ""
         if self.filter["category"] is not "":
             filteredCategories = [ self.filter["category"] ]
         else:
             filteredCategories = settingsHolder.settings["categories"]
         
         filterType = self.filter["type"] if self.filter["type"] is not "" else ""
-
-        addition = ""
         if filterType is not "":
             addition += f" AND type = '{filterType}'"
         if self.filter["search"] is not "":
@@ -88,11 +99,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.branches.append(QtGui.QStandardItem(str(category)))
             for node in range(0, len(self.data[str(category)])):
                 currentData = self.data[str(category)][node]
-                self.branches[x].appendRow([QtGui.QStandardItem(str(currentData[0])),
-                                            QtGui.QStandardItem(str(currentData[1])),
-                                            QtGui.QStandardItem(str(currentData[2])),
-                                            QtGui.QStandardItem(str(currentData[3]))
-                ])
+                color = QtGui.QColor(settingsHolder.settings["typeColors"][currentData[2]])
+                obj0 = QtGui.QStandardItem(str(currentData[0]))
+                obj0.setForeground(color)
+                obj1 = QtGui.QStandardItem(str(currentData[1]))
+                obj1.setForeground(color)
+                obj2 = QtGui.QStandardItem(str(currentData[2]))
+                obj2.setForeground(color)
+                obj3 = QtGui.QStandardItem(str(currentData[3]))
+                obj3.setForeground(color)
+                self.branches[x].appendRow([obj0,
+                                            obj1,
+                                            obj2,
+                                            obj3
+                                            ])
         
         for branch in self.branches:
             self.rootNode.appendRow( [branch] )
@@ -101,28 +121,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.treeView.expandAll()
     
     def addContent(self):
-        self.new = newContent.LinkDialog(settingsHolder)
+        self.new = contentViews.AddContent(settingsHolder)
         self.new.buttonApply.clicked.connect(self.retrieveNewContent)
-        self.new.exec()
     
     def retrieveNewContent(self):
-        print(self.new.obj)
         d = self.new.obj
         try:
             self.cursor.execute("INSERT INTO data(name, content, category, type) VALUES(?,?,?,?)", [d["title"], d["notes"], d["category"], d["type"]])
             self.db.commit()
             self.updateTree()
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as e:
             print("Not a unique ID")
-    
-    def onDoubleClick(self, index):
-        id = self.treeView.selectedIndexes()[3].data()
-        if id is None:
-            pass
-        else:
-            self.detail = detailContent.LinkDialog(settingsHolder, id, self.db, self.cursor)
-            self.detail.exec()
-        self.updateTree()
+            print(e)
     
     def catFilterFunc(self, index):
         self.filter["category"] = self.categoryFilter.itemText(index)
@@ -137,6 +147,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.filter["search"] = search
         self.updateTree()
 
+    def onDoubleClick(self, index):
+        id = self.treeView.selectedIndexes()[3].data()
+        if id is None:
+            pass
+        else:
+            self.detail = contentViews.ViewContent(settingsHolder, id, self.db, self.cursor)
+        self.updateTree()
+    
+    def editTypesFunc(self):
+        self.new = typeEditor.Editor(self.db, self.cursor, settingsHolder.settings["types"])
+        self.new.exec() # wait for the dialog to return
+        settingsHolder.load()
+        self.updateTree()
+    
+    def tmpFunc(self):
+        pass
+
 main = MainWindow(db)
-main.show()
 app.exec()

@@ -8,7 +8,7 @@ class confirm(QtWidgets.QDialog):
         self.label.setText(str(text))
         self.setWindowTitle(str(title))
 
-        self.exec_()
+        self.exec()
         self.show()
 
     def acceptAction(self):
