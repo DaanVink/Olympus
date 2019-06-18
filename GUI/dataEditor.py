@@ -91,7 +91,7 @@ class TypeEditor(QtWidgets.QDialog):
 class CategoryEditor(QtWidgets.QDialog):
     def __init__(self, db, types, parent=None):
         super().__init__(parent)
-        uic.loadUi("GUI/typeEditor.ui", self)
+        uic.loadUi("GUI/categoryEditor.ui", self)
 
         self.initialName = ""
         self.initialColor = ""
@@ -108,10 +108,9 @@ class CategoryEditor(QtWidgets.QDialog):
         self.listWidget.itemSelectionChanged.connect(self.update)
         self.listWidget.setCurrentRow(0)
 
+        #self.buttonDelete.clicked.connect(self.delete)
         self.buttonCancel.clicked.connect(self.cancel)
         self.buttonApply.clicked.connect(self.apply)
-        self.buttonConfirm.clicked.connect(self.confirm)
-        self.buttonColor.clicked.connect(self.openColorDialog)
         self.fieldName.textChanged.connect(self.onTextChanged)
 
         self.show()
@@ -163,14 +162,7 @@ class CategoryEditor(QtWidgets.QDialog):
         selected = self.listWidget.currentItem()
 
         name = selected.data(0)
-        self.cursor.execute(f"SELECT color FROM types WHERE name = '{name}'")
-        color = self.cursor.fetchall()
 
         self.initialName = str(name)
-        self.initialColor = str(color[0][0])
-
         self.newName = self.initialName
-        self.newColor = self.initialColor
-
         self.fieldName.setText(name)
-        self.buttonColor.setStyleSheet(f"background-color: {self.initialColor}" )

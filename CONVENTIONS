@@ -1,0 +1,27 @@
+This document lays out naming and coding conventions for this project.
+
+Naming:
+    Classes:
+        Class name should be max 2 words, describing the function of the UI
+        Class functions: 
+            Because we are sharing a namespace with Qt, some functions may collide.
+            I still have to find an elegant solution to this.
+            However, all functions connected to fields (buttons, inputs, etc) should follow the following template:
+            do(name)
+
+    GUI:
+        Widgets:
+            widget names should follow the following template:
+            (widget name)(widget function)
+            for example:
+            buttonApply or fieldName
+
+Code:
+    Duplication:
+        If the same piece of code is used in more than 3 places, it should be generalised into a function/method
+    
+    Grouping:
+        Similar GUI functions should be contained in the same file
+        if a dialog summons other dialogs, they should also be contained in the same file, unless it is a general dialog (such as the unsaved data warning)
+    Arguments:
+        Database access should be passed by a db reference only. The subclass should create its own cursor to use.

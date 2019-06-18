@@ -1,7 +1,5 @@
-#TODO: Set up a consistent naming scheme for files, classes and functions
 #TODO: find a way to minimize new object creation when calling updateTree()
 #TODO: clean up functions and group related code using whitespace
-#TODO: comments
 #TODO: add detail view for categories with "Rename category", "Delete", etc
 #TODO: write a README.MD
 
