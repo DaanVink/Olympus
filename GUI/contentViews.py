@@ -1,10 +1,13 @@
 from PyQt5 import QtGui, QtWidgets, QtCore, uic
 from GUI import confirm
+import sqlite3
 
-class AddContent(QtWidgets.QMainWindow):
-    def __init__(self, settingsObj, parent=None):
+class AddContent(QtWidgets.QDialog):
+    def __init__(self, settingsObj, db, parent=None):
         super().__init__(parent)
         uic.loadUi("GUI/newContent.ui", self)
+        self.db = db
+        self.cursor = self.db.cursor()
 
         self.buttonCancel.clicked.connect(self.cancel)
         self.buttonApply.clicked.connect(self.apply)
@@ -42,17 +45,25 @@ class AddContent(QtWidgets.QMainWindow):
     def apply(self):
         self.link = self.linkURL.text()
         self.notes = self.linkNotes.toPlainText()
-        self.obj = {"title": self.link, "notes": self.notes, "category": self.cat, "type": self.type}
+        d = {"title": self.link, "notes": self.notes, "category": self.cat, "type": self.type}
+        try:
+            # Add the new data into the DB and refresh the tree
+            self.cursor.execute("INSERT INTO data(name, content, category, type) VALUES(?,?,?,?)", [d["title"], d["notes"], d["category"], d["type"]])
+            self.db.commit()
+        except sqlite3.IntegrityError as e:
+            print("Not a unique ID")
+            print(e)
+            exit(1)
         self.close()
 
-class ViewContent(QtWidgets.QMainWindow):
-    def __init__(self, settingsObj, id, db, cursor, parent=None):
+class ViewContent(QtWidgets.QDialog):
+    def __init__(self, settingsObj, id, db, parent=None):
         super().__init__(parent)
         uic.loadUi("GUI/content.ui", self)
         self.settingsObj = settingsObj
         self.id = id
         self.db = db
-        self.cursor = cursor
+        self.cursor = self.db.cursor()
 
         self.cursor.execute(f"SELECT name, content, category, type FROM data WHERE id == '{self.id}'")
         x = self.cursor.fetchall()
@@ -87,7 +98,7 @@ class ViewContent(QtWidgets.QMainWindow):
         self.close()
         widget = EditContent(self.settingsObj, self.id, self.db, self.cursor)
 
-class EditContent(QtWidgets.QMainWindow):
+class EditContent(QtWidgets.QDialog):
     def __init__(self, settingsObj, id, db, cursor, parent=None):
         super().__init__(parent)
         uic.loadUi("GUI/newContent.ui", self)
