@@ -1,6 +1,5 @@
 #TODO: find a way to minimize new object creation when calling updateTree()
 #TODO: clean up functions and group related code using whitespace
-#TODO: add detail view for categories with "Rename category", "Delete", etc
 #TODO: write a README.MD
 
 from PyQt5 import QtGui, QtWidgets, QtCore, uic
@@ -164,7 +163,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.updateTree()
     
     def editCategoriesFunc(self):
-        self.new = dataEditor.CategoryEditor(self.db, settingsHolder.settings["types"])
+        self.new = dataEditor.CategoryEditor(self.db, settingsHolder.settings["categories"])
         self.new.exec() # block thread until dialog closes
         settingsHolder.load() # reload settings
         self.updateTree()
