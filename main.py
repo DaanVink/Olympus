@@ -1,5 +1,8 @@
 #TODO: find a way to minimize new object creation when calling updateTree()
 #TODO: clean up functions and group related code using whitespace
+#TODO: Preferably, i would like to clean up the UI and make it more intuitive to use, this will require a lot of work
+#TODO: Support for multiple different stores. Included private (encrypted with password) databases, or private sections of a single store.
+#TODO: Database selector, including recently opened 
 #TODO: write a README.MD
 
 from PyQt5 import QtGui, QtWidgets, QtCore, uic
@@ -51,6 +54,14 @@ class MainWindow(QtWidgets.QMainWindow):
         
         # Setting sup the menubar
         self.menu = self.menuBar()
+
+        self.fileMenu = QtWidgets.QMenu("File", self)
+        self.fileSelector = QtWidgets.QAction("Open", self)
+        self.fileMenu.addAction(self.fileSelector)
+        self.menu.addMenu(self.fileMenu)
+
+        self.fileSelector.triggered.connect(self.selectDB)
+
         self.addNew = QtWidgets.QAction("New", self)
         self.addNew.triggered.connect(self.addContent)
         self.menu.addAction(self.addNew)
@@ -75,6 +86,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setWindowTitle("Project Olympus")
         self.show()
+
+    def selectDB(self):
+        options = QtWidgets.QFileDialog.Options()
+        fileName = QtWidgets.QFileDialog.getOpenFileName(self,"Select database", "","All Files (.sqlite)", options=options)
+        if fileName:
+            print(fileName)
 
     def updateTree(self):
         # First we build up a query to load data for the DB
